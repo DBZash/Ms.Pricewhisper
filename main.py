@@ -1,7 +1,9 @@
 """
 @file main.py
-@author DBZash
 @brief Main file
+@author DBZash
+@date 2026-09-26
+@version 0.1.1
 """
 import discord
 from discord.ext import commands
@@ -9,6 +11,7 @@ from discord.ext import commands
 #Reaching for secrets
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
 
 guild_id = os.getenv("SERVER_ID")
@@ -17,9 +20,8 @@ if guild_id is None:
 guild = discord.Object(id=guild_id)
 
 class MissPricewhisper(commands.Bot):
-    """
+    """@brief Main class
     @author DBZash
-    @brief Main class
     """
     async def sync(self):
         try:
@@ -29,18 +31,16 @@ class MissPricewhisper(commands.Bot):
             print(f"failed to sync command: {err}")
 
     async def on_ready(self):
-        """
+        """@brief In terminal, signal the bot is up and running
         @author DBZash
-        @brief Signal the bot is up and running
         """
         await self.sync()
         print(f'Pssst... I am {self.user}, live and ready!')
 
     async def on_message(self, message):
-        """
-        @author DBZash
-        @brief log, in terminal of messages read by the bot on the server
+        """@brief in terminal, show messages read by the bot on the server
         :param message: Message read
+        @author DBZash
         """
         if message.author == self.user:
             return
@@ -66,4 +66,5 @@ def setup():
     #run
     client.run(bot_token)
 
-setup()
+if __name__ == "__main__":
+    setup()
