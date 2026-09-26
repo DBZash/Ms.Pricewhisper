@@ -20,7 +20,7 @@ API_KEY = os.getenv("ITAD_API_KEY")
 if API_KEY is None:
     raise Exception("ITAD_API_KEY not defined")
 
-class IstThereAnyDeal:
+class IsThereAnyDeal:
     def __init__(self):
         self.base_url = "https://api.isthereanydeal.com/"
         self.headers = {
@@ -46,5 +46,5 @@ class IstThereAnyDeal:
                 data = await response.json()
                 print(data)
 
-itad = IstThereAnyDeal()
+itad = IsThereAnyDeal()
 asyncio.run(itad.search_game("Grand Theft Auto IV"))
