@@ -3,13 +3,14 @@
 @brief Main file
 @author DBZash
 @date 2026-09-26
-@version 0.1.1
+@version 0.2.0
 """
 import discord
 from discord.ext import commands
 
 #Reaching for secrets
 import os
+from api.queryManager import QueryManager
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -23,6 +24,7 @@ class MissPricewhisper(commands.Bot):
     """@brief Main class
     @author DBZash
     """
+
     async def sync(self):
         try:
             synced = await self.tree.sync(guild=guild)
@@ -62,6 +64,15 @@ def setup():
     @client.tree.command(name="hey", description="Say Hi to Ms. Pricewhisper", guild=guild)
     async def hey(interaction: discord.Interaction):
         await interaction.response.send_message("I'm here!")
+
+    @client.tree.command(name="check", description="Check the price of a game", guild=guild)
+    async def check(interaction: discord.Interaction, game: str):
+        query_manager = QueryManager()
+        price = await query_manager.itad_lookup(game)
+
+        await interaction.response.send_message(
+            f"{game} is currently €{price:.2f}"
+        )
 
     #run
     client.run(bot_token)

@@ -2,12 +2,9 @@
 @file itad.py
 @brief Communication with IsThereAnyDeal API
 @author DBZash
-@date 2026-09-26
-@version 0.0.1
+@date 2026-09-28
+@version 0.1.0
 """
-
-import asyncio
-import aiohttp
 
 #Reaching for secrets
 import os
@@ -21,30 +18,34 @@ if API_KEY is None:
     raise Exception("ITAD_API_KEY not defined")
 
 class IsThereAnyDeal:
+    base_url = "https://api.isthereanydeal.com/"
+    headers = {
+        "ITAD-API-Key": API_KEY
+    }
     def __init__(self):
-        self.base_url = "https://api.isthereanydeal.com/"
-        self.headers = {
-            "ITAD-API-Key": API_KEY
+        pass
+
+    def get_base_url(self):
+        return self.base_url
+
+    def get_price_lookup_params(self):
+        return {
+            "country": "FR",
+            "deals": "false",
+            "vouchers": "true",
         }
 
-    async def search_game(self, title):
-        url = self.base_url+"games/search/v1"
-        params = {
-            "title": title,
+    def get_price_lookup_url(self):
+        return self.base_url + "games/prices/v3"
+
+    def get_game_lookup_params(self, game_title):
+        return {
+            "title": game_title,
             "results": 5
         }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                url,
-                headers=self.headers,
-                params=params
-            ) as response:
+    def get_game_lookup_url(self):
+        return self.base_url + "games/search/v1"
 
-                print("Status:", response.status)
-
-                data = await response.json()
-                print(data)
-
-itad = IsThereAnyDeal()
-asyncio.run(itad.search_game("Grand Theft Auto IV"))
+    def get_headers(self):
+        return self.headers
