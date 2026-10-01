@@ -1,46 +1,64 @@
 """
-@File: queryManager.py
+@file: queryManager.py
 @brief: Query Manager Class
 @author:DBZash
-@date 2026-09-28
-@version 0.1.0
+@date 2026-10-01
+@version 0.1.1
 """
 
 from api.itad import IsThereAnyDeal
 from api.sessionManager import SessionManager
+from exception.badstatus import BadStatus
 import asyncio
 
 class QueryManager:
+
     def __init__(self):
         self.sessionManager = SessionManager()
 
     async def itad_lookup(self, game_title):
-        lookup_session_manager = self.sessionManager
-        await lookup_session_manager.create()
-        lookup_session = lookup_session_manager.get_session()
-
+        await self.sessionManager.create()
         itad = IsThereAnyDeal()
 
-        async with lookup_session.get(
-            itad.get_game_lookup_url(),
-            headers=itad.headers,
-            params=itad.get_game_lookup_params(game_title)
-        ) as response:
-            print("Status:", response.status)
+        #Find game block
+        try:
+            async with self.sessionManager.get_session().get(
+                itad.get_game_lookup_url(),
+                headers=itad.headers,
+                params=itad.get_game_lookup_params(game_title)
+            ) as response:
+                if response.status != 200:
+                    err = BadStatus("On dirait que je n'ai pas réussi à joindre l'API -> ", response.status)
+                    raise err
+                data = await response.json()
+                game_id= [data[0]["id"]]
+        except BadStatus as err:
+            await self.sessionManager.close()
+            return f"Psst... Quelque chose s'est mal passé : {err}"
+        except IndexError:
+            await self.sessionManager.close()
+            return "Psst... On dirait que je ne suis pas en mesure de trouver le jeu que tu me demandes"
 
-            data = await response.json()
-            game_id= [data[0]["id"]]
 
-        async with lookup_session.post(
-            itad.get_price_lookup_url(),
-            headers=itad.headers,
-            params=itad.get_price_lookup_params(),
-            json=game_id
-        ) as response:
-            print("Status:", response.status)
+        #Find price block
+        try:
+            async with self.sessionManager.get_session().post(
+                itad.get_price_lookup_url(),
+                headers=itad.headers,
+                params=itad.get_price_lookup_params(),
+                json=game_id
+            ) as response:
+                if response.status != 200:
+                    err = BadStatus("On dirait que je n'ai pas réussi à joindre l'API -> ", response.status)
+                    raise err
+                data = await response.json()
+                value = data[0]["deals"][0]["price"]["amount"]
+        except BadStatus as err:
+            await self.sessionManager.close()
+            return f"Psst... Quelque chose s'est mal passé : {err}"
+        except IndexError:
+            await self.sessionManager.close()
+            return "Psst... On dirait que je ne suis pas en mesure de trouver le prix du jeu que tu me demandes"
 
-            data = await response.json()
-            value = data[0]["deals"][0]["price"]["amount"]
-
-        await lookup_session_manager.close()
-        return value
+        await self.sessionManager.close()
+        return f"{game_title} is currently €{value:.2f}"

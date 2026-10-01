@@ -3,7 +3,7 @@
 @brief Main file
 @author DBZash
 @date 2026-09-26
-@version 0.2.0
+@version 0.2.1
 """
 import discord
 from discord.ext import commands
@@ -34,14 +34,13 @@ class MissPricewhisper(commands.Bot):
 
     async def on_ready(self):
         """@brief In terminal, signal the bot is up and running
-        @author DBZash
         """
         await self.sync()
         print(f'Pssst... I am {self.user}, live and ready!')
 
     async def on_message(self, message):
         """@brief in terminal, show messages read by the bot on the server
-        :param message: Message read
+        :param message The message read
         @author DBZash
         """
         if message.author == self.user:
@@ -68,10 +67,9 @@ def setup():
     @client.tree.command(name="check", description="Check the price of a game", guild=guild)
     async def check(interaction: discord.Interaction, game: str):
         query_manager = QueryManager()
-        price = await query_manager.itad_lookup(game)
-
+        answer = await query_manager.itad_lookup(game)
         await interaction.response.send_message(
-            f"{game} is currently €{price:.2f}"
+            answer
         )
 
     #run
