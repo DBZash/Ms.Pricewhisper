@@ -9,7 +9,7 @@
 from api.itad import IsThereAnyDeal
 from api.sessionManager import SessionManager
 from exception.badstatus import BadStatus
-import asyncio
+
 
 class QueryManager:
 
