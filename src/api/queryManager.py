@@ -29,7 +29,9 @@ class QueryManager:
         return self
 
     async def itad_price_lookup(self, game_ids : list, game_titles : list) -> str:
+
         itad = IsThereAnyDeal()
+
         try:
             async with self.use().post(
                 itad.get_price_lookup_url(),
@@ -41,10 +43,11 @@ class QueryManager:
                     err = BadStatus("On dirait que je n'ai pas réussi à joindre l'API -> ", response.status)
                     raise err
                 data = await response.json()
+                if not data:
+                    return f"Sorry... I couldn't find any price for {game_titles[0]}"
 
             title_by_id = dict(zip(game_ids, game_titles)) #Convert to a dictionnary to compensate for API jumbling
             lines = []
-
             for entry in data:
                 value = entry["deals"][0]["price"]["amount"]
                 lines.append(f"{title_by_id.get(entry['id'])} is currently €{value:.2f}")
@@ -56,6 +59,7 @@ class QueryManager:
             return "Psst... On dirait que je ne suis pas en mesure de trouver le prix de ce que tu me demandes"
 
     async def itad_simple_lookup(self, game_title) -> str:
+
         await self.start()
         itad = IsThereAnyDeal()
 
