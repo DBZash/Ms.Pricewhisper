@@ -1,3 +1,5 @@
+**users**
+
 | ATT_NAME               | DATA TYPE            | CHECK / CONSTRAINTS                        | CAN BE NULL? | UNIQUE? | OTHER INFO                                                                                                                                                                   |
 |------------------------|----------------------|--------------------------------------------|--------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | users                  |                      |                                            |              |         |                                                                                                                                                                              |
@@ -5,15 +7,18 @@
 | username               | TEXT                 |                                            | NO           | NO      |                                                                                                                                                                              |
 | last_usage_at          | DATETIME             |                                            | YES          | NO      |                                                                                                                                                                              |
 | ddos_flags_at          | INT                  | 0 <= n <= 60                               | NO           | NO      | increment at every request. Above 60, prevent from API usage if last_usage_at is less than an hour ago. Reset to 1 on use if last_usage is more than an hour ago. / UNSIGNED |
-|                        |                      |                                            |              |         |                                                                                                                                                                              |
-|                        |                      |                                            |              |         |                                                                                                                                                                              |
-| wishlists              |                      |                                            |              |         |                                                                                                                                                                              |
-| wishlist_id            | TEXT                 |                                            | NO           | YES     | PRIMARY KEY                                                                                                                                                                  |
-| user_id                | TEXT                 |                                            | NO           | -       | FOREIGN KEY / UNIQUE REF / ON DELETE CASCADE                                                                                                                                 |
+
+**wishlists**
 
 | ATT_NAME               | DATA TYPE            | CHECK / CONSTRAINTS                        | CAN BE NULL? | UNIQUE? | OTHER INFO                                                                                                                                                                   |
 |------------------------|----------------------|--------------------------------------------|--------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| games                  |                      |                                            |              |         |                                                                                                                                                                              |
+| wishlist_id            | TEXT                 |                                            | NO           | YES     | PRIMARY KEY                                                                                                                                                                  |
+| user_id                | TEXT                 |                                            | NO           | -       | FOREIGN KEY / UNIQUE REF / ON DELETE CASCADE                                                                                                                                 |
+
+**games**
+
+| ATT_NAME               | DATA TYPE            | CHECK / CONSTRAINTS                        | CAN BE NULL? | UNIQUE? | OTHER INFO                                                                                                                                                                   |
+|------------------------|----------------------|--------------------------------------------|--------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | game_id                | TEXT                 |                                            | NO           | YES     | PRIMARY KEY                                                                                                                                                                  |
 | game_title             | TEXT                 |                                            | NO           | TBD     |                                                                                                                                                                              |
 | last_update_date       | DATETIME             |                                            | NO           | NO      |                                                                                                                                                                              |
@@ -25,9 +30,10 @@
 | lkp_shop               | TEXT                 |                                            | YES          | NO      |                                                                                                                                                                              |
 | lkp_date               | DATETIME             |                                            | YES          | NO      |                                                                                                                                                                              |
 
+**alert_rules**
+
 | ATT_NAME               | DATA TYPE            | CHECK / CONSTRAINTS                        | CAN BE NULL? | UNIQUE? | OTHER INFO                                                                                                                                                                   |
 |------------------------|----------------------|--------------------------------------------|--------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| alert_rules            |                      |                                            |              |         |                                                                                                                                                                              |
 | alert_id               | TEXT                 |                                            | NO           | YES     | PRIMARY KEY                                                                                                                                                                  |
 | game_id                | TEXT                 |                                            | NO           | -       | FOREIGN KEY / ON DELETE CASCADE                                                                                                                                              |
 | wishlist_id            | TEXT                 |                                            | NO           | -       | FOREIGN KEY / ON DELETE CASCADE                                                                                                                                              |
@@ -37,11 +43,12 @@
 | last_notified_at       | DATETIME             |                                            | NO           | NO      |                                                                                                                                                                              |
 | last_updated_at        | DATETIME             |                                            | NO           | NO      |                                                                                                                                                                              |
 
+**wishlist_items**
+
 | ATT_NAME               | DATA TYPE            | CHECK / CONSTRAINTS                        | CAN BE NULL? | UNIQUE? | OTHER INFO                                                                                                                                                                   |
 |------------------------|----------------------|--------------------------------------------|--------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| wishlist_items         |                      |                                            |              |         |                                                                                                                                                                              |
 | game_id                | TEXT                 |                                            | NO           | -       | FOREIGN KEY / ON DELETE CASCADE                                                                                                                                              |
 | wishlist_id            | TEXT                 |                                            | NO           | -       | FOREIGN KEY / ON DELETE CASCADE                                                                                                                                              |
 | (game_id, wishlist_id) | (TEXT, TEXT)         |                                            | NO           | YES     | PRIMARY KEY                                                                                                                                                                  |
-|                        |                      |                                            |              |         |                                                                                                                                                                              |
-| INDEX ON               | alert_rules(game_id) |                                            |              |         |                                                                                                                                                                              |
+
+**INDEX ON alert_rules(game_id)**
