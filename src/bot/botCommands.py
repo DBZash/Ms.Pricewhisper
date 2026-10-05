@@ -24,9 +24,9 @@ def init_commands(client, guild, query_manager):
     async def unwatch(interaction: discord.Interaction, game: str):
         await interaction.response.send_message("Coming soon!")
 
-	@client.tree.command(name="whisper", description="Ask Ms.Pricewhisper to tell you about the games on your watchlist meeting your criterions", guild=guild)
-	async def whisper(interaction: discord.Interaction):
-		await interaction.response.send_message("Coming soon!")
+    @client.tree.command(name="whisper", description="Ask Ms.Pricewhisper to tell you about the games on your watchlist meeting your criterions", guild=guild)
+    async def whisper(interaction: discord.Interaction):
+        await interaction.response.send_message("Coming soon!")
 
     @client.tree.command(name="whisperall", description="Ask Ms.Pricewhisper to give you a full report on your watchlist", guild=guild)
     async def report(interaction: discord.Interaction):
