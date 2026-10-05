@@ -11,7 +11,7 @@ def init_commands(client, guild, query_manager):
     async def hey(interaction: discord.Interaction):
         await interaction.response.send_message("I'm here!")
 
-    @client.tree.command(name="check", description="Check the price of a game", guild=guild)
+    @client.tree.command(name="check", description="Ask Ms.Pricewhisper to check the price of a game", guild=guild)
     async def check(interaction: discord.Interaction, game: str):
         answer = await query_manager.itad_simple_lookup(game)
         await interaction.response.send_message(answer)
@@ -24,7 +24,11 @@ def init_commands(client, guild, query_manager):
     async def unwatch(interaction: discord.Interaction, game: str):
         await interaction.response.send_message("Coming soon!")
 
-    @client.tree.command(name="whisperall", description="Ask Ms.Pricewhisper to give you a report on your watchlist", guild=guild)
+			@client.tree.command(name="whisper", description="Ask Ms.Pricewhisper to tell you about the games on your watchlist meeting your criterions", guild=guild)
+    async def whisper(interaction: discord.Interaction):
+						 await interaction.response.send_message("Coming soon!")
+
+    @client.tree.command(name="whisperall", description="Ask Ms.Pricewhisper to give you a full report on your watchlist", guild=guild)
     async def report(interaction: discord.Interaction):
         #Test Exemple
         game_ids = [
