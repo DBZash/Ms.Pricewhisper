@@ -3,7 +3,7 @@
 @brief Communication with IsThereAnyDeal API
 @author DBZash
 @date 2026-09-28
-@version 0.1.0
+@version 0.1.1
 """
 
 #Reaching for secrets
@@ -28,7 +28,8 @@ class IsThereAnyDeal:
     def get_base_url(self):
         return self.base_url
 
-    def get_price_lookup_params(self):
+    @staticmethod
+    def get_price_lookup_params():
         return {
             "country": "FR",
             "deals": "false",
@@ -38,7 +39,8 @@ class IsThereAnyDeal:
     def get_price_lookup_url(self):
         return self.base_url + "games/prices/v3"
 
-    def get_game_lookup_params(self, game_title):
+    @staticmethod
+    def get_game_lookup_params(game_title):
         return {
             "title": game_title,
             "results": 5

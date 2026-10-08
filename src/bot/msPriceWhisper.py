@@ -19,8 +19,7 @@ if guild_id is None:
 guild = discord.Object(id=guild_id)
 
 class MissPriceWhisper(commands.Bot):
-    """
-    Class responsible for interacting with the bot
+    """Class responsible for interacting with the bot
     """
 
     async def sync(self):
