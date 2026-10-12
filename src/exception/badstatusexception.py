@@ -1,12 +1,11 @@
-"""
-@file badstatus.py
+"""@file badstatus.py
 @brief Class for badstatus exception
 @author DBZash
-@date 2026-10-01
-@version 0.1.0
+@date 2026-10-12
+@version 0.1.1
 """
 
-class BadStatus(Exception):
+class BadStatusException(Exception):
     """@brief Exception thrown whenever a bad status is detected from the API
     @author DBZash
     """

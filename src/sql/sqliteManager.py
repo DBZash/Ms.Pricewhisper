@@ -1,14 +1,16 @@
-"""
-@file sqliteManager.py
+"""@file sqliteManager.py
 @brief SQLiteManager class
 @author DBZash
-@date 2026-10-08
-@version 0.1.0
+@date 2026-10-12
+@version 0.1.1
 """
+
 import os
 import sqlite3
-import datetime
+from datetime import datetime
+import sql.utility as u
 from dotenv import load_dotenv
+from exception.toomanyrequests import TooManyRequestsException
 
 load_dotenv()
 realpath = os.getenv("DB_PATH")
@@ -21,7 +23,6 @@ class SQLiteManager:
     """
 
     def __init__(self):
-
         self.conn = sqlite3.connect(path)
         self.cursor = self.conn.cursor()
         self.execute("""PRAGMA foreign_keys = ON""")
@@ -42,20 +43,26 @@ class SQLiteManager:
         self.cursor.close()
         self.conn.close()
 
-    def insert_user(self, user_id, username, last_usage):
-        self.execute("""INSERT INTO users VALUES (?, ?, ?, ?)""", (user_id, username, last_usage, 1))
-
-    def update_user(self, last_usage, user_id):
-        self.execute("""UPDATE users SET ddos_flags_at = ddos_flags_at + 1, last_usage_at = ? WHERE user_id = ?""", (last_usage, user_id))
-
     def delete_user(self, user_id):
         self.execute("""DELETE FROM users WHERE user_id = ?""", (user_id,))
 
-    def consult_user(self, user_id):
-        return self.read("""SELECT * FROM users WHERE user_id = ?""", (user_id,))
+    def update_user(self, user_id, username):
+        user_data = self.read("""SELECT * FROM users WHERE user_id = ?""", (user_id,))
+        date = datetime.now()
 
-    def create_wishlist(self,wishlist_id, user_id):
-        self.execute("""INSERT INTO wishlists VALUES (?, ?)""", (wishlist_id, user_id))
+        if user_data is None: # --> Insert New User
+            self.execute("""INSERT INTO users VALUES (?, ?, ?, ?)""", (user_id, username, date, 1))
+
+        elif u.delta_over_a_target(date, datetime.fromisoformat(user_data[2]), u.HOUR): # --> Update Existing User AND reset ddos flags
+           self.execute("""UPDATE users SET ddos_flags_at = 1, last_usage_at = ? WHERE user_id = ?""", (date, user_id))
+
+        elif user_data[3] < 60 : # --> Update Existing User AND Increment ddos flags
+            self.execute("""UPDATE users SET ddos_flags_at = ddos_flags_at + 1, last_usage_at = ? WHERE user_id = ?""", (date, user_id))
+        else:
+            raise TooManyRequestsException(username)
+
+    def create_wishlist(self, user_id):
+        self.execute("""INSERT INTO wishlists (user_id) VALUES (?)""", (user_id,))
 
     def delete_wishlist(self, wishlist_id):
         self.execute("""DELETE FROM wishlists WHERE wishlist_id = ?""", (wishlist_id,))
@@ -70,7 +77,7 @@ class SQLiteManager:
         return self.read("""SELECT wishlist_id FROM wishlists WHERE user_id = ?""", (user_id,))
 
     def insert_game(self, game_id, game_title, url, price, cut, shop, voucher=None):
-        date = datetime.datetime.now()
+        date = datetime.now()
         if voucher:
             self.execute("""INSERT INTO games VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", (game_id, game_title, date, url, price, cut, voucher, shop, price, shop, date))
         else:
@@ -83,7 +90,7 @@ class SQLiteManager:
         return self.read("""SELECT lowest_known_price FROM games WHERE game_id = ?""", (game_id,))
 
     def update_game(self, game_id, url, price, cut, shop, voucher=None):
-        date = datetime.datetime.now()
+        date = datetime.now()
         past_data = self.consult_game_lkp(game_id)
         query = ["""UPDATE games SET last_update_date = ?, last_update_url = ?, last_update_price = ?, last_update_cut = ?, last_update_shop = ?"""]
         args = [date, url, price, cut, shop]

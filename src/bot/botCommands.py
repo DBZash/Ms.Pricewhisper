@@ -1,15 +1,23 @@
-"""
-@file botCommands.py
+"""@file botCommands.py
 @brief Handling of bot commands
 @author DBZash
+@date 2026-10-12
+@version 0.1.2
 """
 
 import discord
 
-def init_commands(client, guild, query_manager):
+from exception.toomanyrequests import TooManyRequestsException
+
+
+def init_commands(client, guild, query_manager, sql_manager):
     @client.tree.command(name="hey", description="Say Hi to Ms. Pricewhisper", guild=guild)
     async def hey(interaction: discord.Interaction):
-        await interaction.response.send_message("I'm here!")
+        try:
+            sql_manager.update_user(interaction.user.id, interaction.user.name)
+            await interaction.response.send_message("I'm here!")
+        except TooManyRequestsException:
+            await interaction.response.send_message("Haven't we talked enough for now?")
 
     @client.tree.command(name="check", description="Ask Ms.Pricewhisper to check the price of a game", guild=guild)
     async def check(interaction: discord.Interaction, game: str):

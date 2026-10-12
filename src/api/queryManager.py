@@ -8,7 +8,7 @@
 
 from api.itad import IsThereAnyDeal
 from api.sessionManager import SessionManager
-from exception.badstatus import BadStatus
+from exception.badstatusexception import BadStatusException
 
 
 class QueryManager:
@@ -40,7 +40,7 @@ class QueryManager:
                 json=game_ids
             ) as response:
                 if response.status != 200:
-                    err = BadStatus("On dirait que je n'ai pas réussi à joindre l'API -> ", response.status)
+                    err = BadStatusException("On dirait que je n'ai pas réussi à joindre l'API -> ", response.status)
                     raise err
                 data = await response.json()
                 if not data:
@@ -53,7 +53,7 @@ class QueryManager:
                 lines.append(f"{title_by_id.get(entry['id'])} is currently €{value:.2f}")
             return "\n".join(lines)
 
-        except BadStatus as err:
+        except BadStatusException as err:
             return f"Psst... Quelque chose s'est mal passé : {err}"
         except IndexError:
             return "Psst... On dirait que je ne suis pas en mesure de trouver le prix de ce que tu me demandes"
@@ -70,7 +70,7 @@ class QueryManager:
                 params=itad.get_game_lookup_params(game_title)
             ) as response:
                 if response.status != 200:
-                    err = BadStatus("On dirait que je n'ai pas réussi à joindre l'API -> ", response.status)
+                    err = BadStatusException("On dirait que je n'ai pas réussi à joindre l'API -> ", response.status)
                     raise err
                 data = await response.json()
 
@@ -78,7 +78,7 @@ class QueryManager:
             game_itad_title = [data[0]["title"]]
             return await self.itad_price_lookup(game_id, game_itad_title)
 
-        except BadStatus as err:
+        except BadStatusException as err:
             return f"Psst... Quelque chose s'est mal passé : {err}"
         except IndexError:
             return "Psst... On dirait que je ne suis pas en mesure de trouver le jeu que tu me demandes"

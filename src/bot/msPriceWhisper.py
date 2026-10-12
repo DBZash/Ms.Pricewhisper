@@ -10,6 +10,7 @@ import os
 from discord.ext import commands
 from dotenv import load_dotenv
 from api.queryManager import QueryManager
+from sql.sqliteManager import SQLiteManager
 from bot.botCommands import *
 
 load_dotenv()
@@ -53,5 +54,5 @@ def run():
     if bot_token is None:
         raise Exception("BOT_TOKEN not defined")
 
-    init_commands(client, guild, query_manager=QueryManager())
+    init_commands(client, guild, query_manager=QueryManager(), sql_manager=SQLiteManager())
     client.run(bot_token)
