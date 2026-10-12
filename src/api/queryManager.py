@@ -3,12 +3,13 @@
 @brief: Query Manager Class
 @author:DBZash
 @date 2026-10-04
-@version 0.1.2
+@version 0.2.0
 """
 
 from api.itad import IsThereAnyDeal
 from api.sessionManager import SessionManager
-from exception.badstatusexception import BadStatusException
+from exception.badstatus import BadStatusException
+from sql.sqliteManager import SQLiteManager
 
 
 class QueryManager:
@@ -25,11 +26,24 @@ class QueryManager:
     async def stop(self):
         await self.sessionManager.close()
 
-    def touch(self):
-        return self
+    async def price_lookup(self, game_titles : list, game_ids : list):
+        lines = []
+        remaining_titles = []
+        remaining_ids = []
+        sql = SQLiteManager()
+        for i in range(len(game_titles)):
+            if sql.last_update_is_fresh(game_ids[i]):
+                lines.append(sql.game_to_string(game_ids[i]))
+            else:
+                remaining_ids.append(game_ids[i])
+                remaining_titles.append(game_titles[i])
+        if len(remaining_titles) > 0:
+            lines.append(await self.itad_price_lookup(remaining_ids, remaining_titles))
+        return "\n".join(lines)
 
     async def itad_price_lookup(self, game_ids : list, game_titles : list) -> str:
 
+        sql = SQLiteManager()
         itad = IsThereAnyDeal()
 
         try:
@@ -49,9 +63,11 @@ class QueryManager:
             title_by_id = dict(zip(game_ids, game_titles)) #Convert to a dictionnary to compensate for API jumbling
             lines = []
             for entry in data:
-                value = entry["deals"][0]["price"]["amount"]
-                lines.append(f"{title_by_id.get(entry['id'])} is currently €{value:.2f}")
-            return "\n".join(lines)
+                sql.refresh_game(str(title_by_id.get(entry['id'])),entry, 'itad')
+                lines.append(sql.game_to_string(entry['id']))
+            if len(lines) != 0:
+                return "\n".join(lines)
+            return ""
 
         except BadStatusException as err:
             return f"Psst... Quelque chose s'est mal passé : {err}"
@@ -76,7 +92,7 @@ class QueryManager:
 
             game_id= [data[0]["id"]]
             game_itad_title = [data[0]["title"]]
-            return await self.itad_price_lookup(game_id, game_itad_title)
+            return await self.price_lookup(game_itad_title, game_id)
 
         except BadStatusException as err:
             return f"Psst... Quelque chose s'est mal passé : {err}"

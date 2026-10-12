@@ -7,12 +7,17 @@
 
 import datetime
 
-#CONSTANTS
+# CONSTANTS
 HOUR = 3600
+FRESH_GAME = 10800
 DAY = 86400
 WEEK = 604800
 
-#UTILITIES FUNCTIONS
+# FUNCTIONS
 def delta_over_a_target(date1 : datetime.datetime, date2 : datetime.datetime, target : int):
     delta = abs(date2 - date1)
     return delta.total_seconds() > target
+
+def delta_under_a_target(date1 : datetime.datetime, date2 : datetime.datetime, target : int):
+    delta = abs(date2 - date1)
+    return delta.total_seconds() < target

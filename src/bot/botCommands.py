@@ -6,11 +6,12 @@
 """
 
 import discord
-
 from exception.toomanyrequests import TooManyRequestsException
+from sql.sqliteManager import SQLiteManager
 
 
-def init_commands(client, guild, query_manager, sql_manager):
+def init_commands(client, guild, query_manager):
+    sql_manager = SQLiteManager()
     @client.tree.command(name="hey", description="Say Hi to Ms. Pricewhisper", guild=guild)
     async def hey(interaction: discord.Interaction):
         try:
@@ -37,7 +38,7 @@ def init_commands(client, guild, query_manager, sql_manager):
         await interaction.response.send_message("Coming soon!")
 
     @client.tree.command(name="whisperall", description="Ask Ms.Pricewhisper to give you a full report on your watchlist", guild=guild)
-    async def report(interaction: discord.Interaction):
+    async def whisperall(interaction: discord.Interaction):
         #Test Exemple
         game_ids = [
             "018d954c-7887-714c-8eb8-808a642fcf0f",
@@ -52,10 +53,15 @@ def init_commands(client, guild, query_manager, sql_manager):
         ]
 
         await query_manager.start()
-        answer = await query_manager.itad_price_lookup(game_ids, game_titles)
+        answer = await query_manager.price_lookup(game_titles, game_ids)
         await interaction.response.send_message(answer)
         await query_manager.stop()
 
     @client.tree.command(name="clear", description="Ask Ms.Pricewhisper to clear your watchlist", guild=guild)
     async def clear(interaction: discord.Interaction):
-        await interaction.response.send_message("Coming soon!")
+        try:
+            sql_manager.update_user(interaction.user.id, interaction.user.name)
+            sql_manager.create_wishlist(interaction.user.id)
+            await interaction.response.send_message("Psst... Your watchlist has been cleared. Tell me if you need to add **Anything** back")
+        except TooManyRequestsException:
+            await interaction.response.send_message("Haven't we talked enough for now?")

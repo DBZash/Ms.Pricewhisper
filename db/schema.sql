@@ -6,8 +6,8 @@ ddos_flags_at   INTEGER NOT NULL CHECK (ddos_flags_at BETWEEN 0 AND 60)
 );
 
 CREATE TABLE wishlists (
-wishlist_id TEXT PRIMARY KEY,
-user_id     TEXT NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE
+wishlist_id INTEGER PRIMARY KEY,
+user_id     TEXT    NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE games (

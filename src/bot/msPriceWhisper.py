@@ -3,14 +3,13 @@
 @brief MissPriceWhisper class and initialization
 @author DBZash
 @date 2026-10-04
-@version 0.1.0
+@version 0.2.0
 """
 
 import os
 from discord.ext import commands
 from dotenv import load_dotenv
 from api.queryManager import QueryManager
-from sql.sqliteManager import SQLiteManager
 from bot.botCommands import *
 
 load_dotenv()
@@ -46,13 +45,17 @@ class MissPriceWhisper(commands.Bot):
         print(f'Message from {message.author} : {message.content}')
 
 def run():
-    intents = discord.Intents.default()
-    intents.message_content = True
+    sqlManager = SQLiteManager()
+    try:
+        intents = discord.Intents.default()
+        intents.message_content = True
 
-    client = MissPriceWhisper(command_prefix='!', intents=intents)
-    bot_token = os.getenv("BOT_TOKEN")
-    if bot_token is None:
-        raise Exception("BOT_TOKEN not defined")
+        client = MissPriceWhisper(command_prefix='!', intents=intents)
+        bot_token = os.getenv("BOT_TOKEN")
+        if bot_token is None:
+            raise Exception("BOT_TOKEN not defined")
 
-    init_commands(client, guild, query_manager=QueryManager(), sql_manager=SQLiteManager())
-    client.run(bot_token)
+        init_commands(client, guild, query_manager=QueryManager())
+        client.run(bot_token)
+    finally:
+        sqlManager.close()
