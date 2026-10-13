@@ -2,8 +2,8 @@
 @file: queryManager.py
 @brief: Query Manager Class
 @author:DBZash
-@date 2026-10-04
-@version 0.2.0
+@date 2026-10-14
+@version 0.3.0
 """
 
 from api.itad import IsThereAnyDeal
@@ -16,15 +16,23 @@ class QueryManager:
 
     def __init__(self):
         self.sessionManager = SessionManager()
+        self.itad = IsThereAnyDeal()
+        self._isAlive = False
+
+    def alive(self):
+        return self._isAlive
 
     async def start(self):
-        await self.sessionManager.create()
+        if not self._isAlive:
+            await self.sessionManager.create()
+            self._isAlive = True
 
     def use(self):
         return self.sessionManager.get_session()
 
     async def stop(self):
         await self.sessionManager.close()
+        self._isAlive = False
 
     async def price_lookup(self, game_titles : list, game_ids : list):
         lines = []
@@ -44,13 +52,13 @@ class QueryManager:
     async def itad_price_lookup(self, game_ids : list, game_titles : list) -> str:
 
         sql = SQLiteManager()
-        itad = IsThereAnyDeal()
+        if not self.alive(): await self.start()
 
         try:
             async with self.use().post(
-                itad.get_price_lookup_url(),
-                headers=itad.headers,
-                params=itad.get_price_lookup_params(),
+                self.itad.get_price_lookup_url(),
+                headers=self.itad.headers,
+                params=self.itad.get_price_lookup_params(),
                 json=game_ids
             ) as response:
                 if response.status != 200:
@@ -74,26 +82,30 @@ class QueryManager:
         except IndexError:
             return "Psst... On dirait que je ne suis pas en mesure de trouver le prix de ce que tu me demandes"
 
-    async def itad_simple_lookup(self, game_title) -> str:
+    async def simple_lookup(self, game_title : str):
+        lookup = SQLiteManager().get_game_query_data(game_title)
+        if lookup is not None:
+            return await self.price_lookup([lookup[0]],[lookup[1]])
+        return await self.itad_simple_lookup(game_title)
 
+    async def fetch_game_data(self, game_title: str) -> list:
+        if not self.alive(): await self.start()
+        async with self.use().get(
+                self.itad.get_game_lookup_url(),
+                headers=self.itad.headers,
+                params=self.itad.get_game_lookup_params(game_title)
+        ) as response:
+            if response.status != 200:
+                raise BadStatusException("On dirait que je n'ai pas réussi à joindre l'API -> ", response.status)
+            return await response.json()
+
+    async def itad_simple_lookup(self, game_title: str) -> str:
         await self.start()
-        itad = IsThereAnyDeal()
-
         try:
-            async with self.use().get(
-                itad.get_game_lookup_url(),
-                headers=itad.headers,
-                params=itad.get_game_lookup_params(game_title)
-            ) as response:
-                if response.status != 200:
-                    err = BadStatusException("On dirait que je n'ai pas réussi à joindre l'API -> ", response.status)
-                    raise err
-                data = await response.json()
-
-            game_id= [data[0]["id"]]
+            data = await self.fetch_game_data(game_title)
+            game_id = [data[0]["id"]]
             game_itad_title = [data[0]["title"]]
             return await self.price_lookup(game_itad_title, game_id)
-
         except BadStatusException as err:
             return f"Psst... Quelque chose s'est mal passé : {err}"
         except IndexError:

@@ -2,7 +2,7 @@
 @brief class for Too many requests exception
 @author DBZash
 @date 2026-10-12
-@version 0.1.0
+@version 0.1.1
 """
 
 class TooManyRequestsException(Exception):
@@ -13,3 +13,6 @@ class TooManyRequestsException(Exception):
 
     def __str__(self):
         return f"Too many requests from {self.user} : ddos flag limit reached"
+
+    def prompt(self):
+        return f"@{self.user} Haven't we talked enough for now?"
