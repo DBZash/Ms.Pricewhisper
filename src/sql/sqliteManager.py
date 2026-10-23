@@ -1,14 +1,14 @@
 """@file sqliteManager.py
 @brief SQLiteManager class
 @author DBZash
-@date 2026-10-14
-@version 0.3.0
+@date 2026-10-23
+@version 0.3.1
 """
 
 import os
 import sqlite3
 from datetime import datetime
-import sql.utility as u
+import sql.sqliteUtility as Util
 from dotenv import load_dotenv
 from exception.invalidparam import InvalidParamException
 from exception.toomanyrequests import TooManyRequestsException
@@ -64,7 +64,7 @@ class SQLiteManager:
         if user_data is None: # --> Insert New User
             self._execute("""INSERT INTO users VALUES (?, ?, ?, ?)""", (user_id, username, date, 1))
 
-        elif u.delta_over_a_target(date, datetime.fromisoformat(user_data[2]), u.HOUR): # --> Update Existing User AND reset ddos flags
+        elif Util.delta_over_a_target(date, datetime.fromisoformat(user_data[2]), Util.HOUR): # --> Update Existing User AND reset ddos flags
            self._execute("""UPDATE users SET ddos_flags_at = 1, last_usage_at = ? WHERE user_id = ?""", (date, user_id))
 
         elif user_data[3] < 60 : # --> Update Existing User AND Increment ddos flags
@@ -99,7 +99,7 @@ class SQLiteManager:
         :return: A tuple containing, in order, the game_title and game_id as known by the database,
         if not found then return None
         """
-        reformated_titles = u.title_formatting(title)
+        reformated_titles = Util.title_formatting(title)
         for formated_title in reformated_titles:
             query_data = self._read("""SELECT game_title, game_id FROM games WHERE game_title = ?""", (formated_title,))
             if query_data is not None:
@@ -110,7 +110,7 @@ class SQLiteManager:
         data = self.consult_game(game_id)
         if data is None:
             return False
-        return u.delta_under_a_target(datetime.now(), datetime.fromisoformat(data[2]), u.FRESH_GAME)
+        return Util.delta_under_a_target(datetime.now(), datetime.fromisoformat(data[2]), Util.FRESH_GAME)
 
     def insert_game(self, game_id, game_title, url, price, cut, shop, voucher=None):
         date = datetime.now()
@@ -206,31 +206,41 @@ class SQLiteManager:
             alert_rule_type = 'minimum_cut'
         try:
             if threshold is not None:
-                self._execute("""INSERT INTO wishlist_items (game_id, wishlist_id, alert_rule_type, threshold, last_updated_at) VALUES (?,?,?,?,?)""", (game_id, wishlist_id, alert_rule_type, threshold, datetime.now()))
+                self._execute("""INSERT INTO wishlist_items (game_id, wishlist_id, alert_rule_type, threshold, last_updated_at) VALUES (?,?,?,?,?)""",
+                              (game_id, wishlist_id, alert_rule_type, threshold, datetime.now()))
             else:
-                self._execute("""INSERT INTO wishlist_items (game_id, wishlist_id, alert_rule_type, last_updated_at) VALUES (?,?,?,?)""", (game_id, wishlist_id, alert_rule_type, datetime.now()))
-        except sqlite3.IntegrityError:
+                self._execute("""INSERT INTO wishlist_items (game_id, wishlist_id, alert_rule_type, last_updated_at) VALUES (?,?,?,?)""",
+                              (game_id, wishlist_id, alert_rule_type, datetime.now()))
+        except sqlite3.IntegrityError: # <-- During runtime, reached if the item already exists even though the rest was verified, then we simply try to update the rule
             self.update_wishlist_item_rule(game_id, wishlist_id, alert_rule_type, threshold)
 
     def update_wishlist_item_rule(self, game_id, wishlist_id, alert_rule_type, threshold=None):
         if threshold is not None:
-            self._execute("""UPDATE wishlist_items SET alert_rule_type = ?, threshold = ?, last_updated_at = ? WHERE game_id = ? AND wishlist_id = ?""", (alert_rule_type, threshold, datetime.now(), game_id, wishlist_id))
+            self._execute("""UPDATE wishlist_items SET alert_rule_type = ?, threshold = ?, last_updated_at = ? WHERE game_id = ? AND wishlist_id = ?""",
+                          (alert_rule_type, threshold, datetime.now(), game_id, wishlist_id))
         else:
-            self._execute("""UPDATE wishlist_items SET alert_rule_type = ?, threshold = NULL, last_updated_at = ? WHERE game_id = ? AND wishlist_id = ?""", (alert_rule_type, datetime.now(), game_id, wishlist_id))
+            self._execute("""UPDATE wishlist_items SET alert_rule_type = ?, threshold = NULL, last_updated_at = ? WHERE game_id = ? AND wishlist_id = ?""",
+                          (alert_rule_type, datetime.now(), game_id, wishlist_id))
 
     def notified_item_flag(self, game_id, wishlist_id, last_notified_price, last_notified_at):
-        self._execute("""UPDATE wishlist_items SET last_notified_price = ?, last_notified_at = ?, last_updated_at = ? WHERE game_id = ? AND wishlist_id = ?""", (last_notified_price, last_notified_at, datetime.now(), game_id, wishlist_id))
+        self._execute("""UPDATE wishlist_items SET last_notified_price = ?, last_notified_at = ?, last_updated_at = ? WHERE game_id = ? AND wishlist_id = ?""",
+                      (last_notified_price, last_notified_at, datetime.now(), game_id, wishlist_id))
 
     def delete_wishlist_item(self, game_id, wishlist_id):
-        self._execute("""DELETE FROM wishlist_items WHERE wishlist_id = ? AND game_id = ?""", (wishlist_id, game_id))
+        if self._read("""SELECT COUNT(game_id) FROM wishlist_items WHERE wishlist_id = ? AND game_id = ?""", (wishlist_id, game_id))[0] > 0:
+            self._execute("""DELETE FROM wishlist_items WHERE wishlist_id = ? AND game_id = ?""", (wishlist_id, game_id))
+        else:
+            raise ValueError("Psst... This item isn't part of your wishlist, so I couldn't delete it from it\n"
+                             "The good news is that it's technically already out of scope :wink:")
 
     def consult_wishlist_item(self, game_id, wishlist_id):
         return self._read("""SELECT * FROM wishlist_items WHERE wishlist_id = ? AND game_id = ?""", (wishlist_id, game_id))
 
     def consult_all_items_from_wishlist(self, wishlist_id):
-        return self._read_all("""SELECT * FROM games LEFT JOIN wishlist_items ON games.game_id = wishlist_items.game_id WHERE wishlist_items.wishlist_id = ?""", (wishlist_id,))
+        return self._read_all("""SELECT games.game_id, game_title, alert_rule_type, threshold FROM games INNER JOIN wishlist_items ON games.game_id = wishlist_items.game_id WHERE wishlist_items.wishlist_id = ?""",
+                              (wishlist_id,))
 
-    def find_item_pair_in_db(self, game_title, user_id):
+    def resolve_wishlist_item_pkey(self, game_title, user_id):
         game_data = self.get_game_query_data(game_title)
         wishlist_data = self.consult_user_wishlist(user_id)
         if wishlist_data is None:

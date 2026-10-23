@@ -1,5 +1,5 @@
-"""@file utility.py
-@brief Common utility functions
+"""@file sqliteUtility.py
+@brief Common utility functions for SQLiteManager
 @author DBZash
 @date 2026-10-14
 @version 0.2.0

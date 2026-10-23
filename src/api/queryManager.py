@@ -47,7 +47,9 @@ class QueryManager:
                 remaining_titles.append(game_titles[i])
         if len(remaining_titles) > 0:
             lines.append(await self.itad_price_lookup(remaining_ids, remaining_titles))
-        return "\n".join(lines)
+        if lines:
+            return "\n".join(lines)
+        return "I couldn't find any price, maybe your wishlist is empty or the game(s) you're looking for aren't available"
 
     async def itad_price_lookup(self, game_ids : list, game_titles : list) -> str:
 
@@ -62,7 +64,7 @@ class QueryManager:
                 json=game_ids
             ) as response:
                 if response.status != 200:
-                    err = BadStatusException("On dirait que je n'ai pas réussi à joindre l'API -> ", response.status)
+                    err = BadStatusException("Seems like I couldn't join the API -> ", response.status)
                     raise err
                 data = await response.json()
                 if not data:
@@ -78,9 +80,9 @@ class QueryManager:
             return ""
 
         except BadStatusException as err:
-            return f"Psst... Quelque chose s'est mal passé : {err}"
+            return f"Psst... Something went wrong : {err}"
         except IndexError:
-            return "Psst... On dirait que je ne suis pas en mesure de trouver le prix de ce que tu me demandes"
+            return "Psst... It seems I can't find the price of what you're looking for"
 
     async def simple_lookup(self, game_title : str):
         lookup = SQLiteManager().get_game_query_data(game_title)
@@ -96,7 +98,7 @@ class QueryManager:
                 params=self.itad.get_game_lookup_params(game_title)
         ) as response:
             if response.status != 200:
-                raise BadStatusException("On dirait que je n'ai pas réussi à joindre l'API -> ", response.status)
+                raise BadStatusException("Seems like I couldn't join the API -> ", response.status)
             return await response.json()
 
     async def itad_simple_lookup(self, game_title: str) -> str:
@@ -107,8 +109,8 @@ class QueryManager:
             game_itad_title = [data[0]["title"]]
             return await self.price_lookup(game_itad_title, game_id)
         except BadStatusException as err:
-            return f"Psst... Quelque chose s'est mal passé : {err}"
+            return f"Psst... Something went wrong : {err}"
         except IndexError:
-            return "Psst... On dirait que je ne suis pas en mesure de trouver le jeu que tu me demandes"
+            return "Psst... It seems I can't find the price of what you're looking for"
         finally:
             await self.stop()
