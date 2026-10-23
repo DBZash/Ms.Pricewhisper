@@ -2,7 +2,7 @@
 @brief SQLiteManager class
 @author DBZash
 @date 2026-10-23
-@version 0.3.1
+@version 0.4.0
 """
 
 import os
@@ -79,7 +79,12 @@ class SQLiteManager:
         return self._read("""SELECT * FROM wishlists WHERE user_id = ?""", (user_id,))
 
     def get_wishlist_id_from_user(self, user_id):
-        return self._read("""SELECT wishlist_id FROM wishlists WHERE user_id = ?""", (user_id,))
+        ans = self._read("""SELECT wishlist_id FROM wishlists WHERE user_id = ?""", (user_id,))
+        if ans:
+            return ans
+        raise ValueError("It seems like you don't have a wishlist the following options are available friend: \n"
+                         "- try **/clear** to generate an empty one\n"
+                         "- try **/watch** to generate one with a specific game\n")
 
     def create_wishlist(self, user_id):
         wishlist_data = self.consult_user_wishlist(user_id)
@@ -157,13 +162,8 @@ class SQLiteManager:
     def game_to_string(self, game_id, form='fast'):
         data = self.consult_game(game_id)
 
-        title = data[1]
-        url = data[3]
-        price = data[4]
-        cut = data[5]
-        voucher = data[6]
-        shop = data[7]
-        low = data[8]
+        title = data[1]; url = data[3]; price = data[4] ;cut = data[5]
+        voucher = data[6]; shop = data[7]; low = data[8]
 
         line = [
             f"[{title}]({url}) is currently **€{price}** "
@@ -214,6 +214,17 @@ class SQLiteManager:
         except sqlite3.IntegrityError: # <-- During runtime, reached if the item already exists even though the rest was verified, then we simply try to update the rule
             self.update_wishlist_item_rule(game_id, wishlist_id, alert_rule_type, threshold)
 
+    async def filtering_by_rule(self, user_id):
+        lines = []
+        data = self.consult_all_wishlist_items(self.get_wishlist_id_from_user(user_id=user_id)[0])
+        for game in data:
+            game_id = game[0]
+            if Util.meet_rule_condition(game_data=game):
+                lines.append(self.game_to_string(game_id=game_id, form='full'))
+        if lines:
+            return "\n".join(lines)
+        return "Huh-Oh, it seems like nothing matches your rules yet"
+
     def update_wishlist_item_rule(self, game_id, wishlist_id, alert_rule_type, threshold=None):
         if threshold is not None:
             self._execute("""UPDATE wishlist_items SET alert_rule_type = ?, threshold = ?, last_updated_at = ? WHERE game_id = ? AND wishlist_id = ?""",
@@ -236,8 +247,8 @@ class SQLiteManager:
     def consult_wishlist_item(self, game_id, wishlist_id):
         return self._read("""SELECT * FROM wishlist_items WHERE wishlist_id = ? AND game_id = ?""", (wishlist_id, game_id))
 
-    def consult_all_items_from_wishlist(self, wishlist_id):
-        return self._read_all("""SELECT games.game_id, game_title, alert_rule_type, threshold FROM games INNER JOIN wishlist_items ON games.game_id = wishlist_items.game_id WHERE wishlist_items.wishlist_id = ?""",
+    def consult_all_wishlist_items(self, wishlist_id):
+        return self._read_all("""SELECT games.game_id, game_title, last_update_price, alert_rule_type, threshold, lowest_known_price, last_update_cut FROM games INNER JOIN wishlist_items ON games.game_id = wishlist_items.game_id WHERE wishlist_items.wishlist_id = ?""",
                               (wishlist_id,))
 
     def resolve_wishlist_item_pkey(self, game_title, user_id):
@@ -252,3 +263,15 @@ class SQLiteManager:
         else:
             game_id = None
         return game_id, wishlist_id
+
+    def resolve_wishlist_items_identifiers(self, usr_id):
+        data = self.consult_all_wishlist_items(self.get_wishlist_id_from_user(usr_id)[0])
+        if not data:
+            raise ValueError("It seems like your wishlist is empty, consider adding a game to it.")
+
+        game_ids = []; game_titles = []
+        for item in data:
+            game_ids.append(item[0])
+            game_titles.append(item[1])
+
+        return game_ids, game_titles

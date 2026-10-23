@@ -34,6 +34,7 @@ def init_commands(client, guild, query_manager : QueryManager):
             await interaction.response.send_message("Psst... Seems like I can't find this game")
         finally:
             if query_manager.alive():
+                print ("Welp... That was awkward")
                 await query_manager.stop()
 
     async def _resolve_game_and_wishlist(interaction: discord.Interaction, game: str):
@@ -50,14 +51,6 @@ def init_commands(client, guild, query_manager : QueryManager):
 
         return game_id, wishlist_id
 
-    async def _resolve_wishlist_content(interaction: discord.Interaction):
-        data = sql_manager.consult_all_items_from_wishlist(sql_manager.get_wishlist_id_from_user(interaction.user.id)[0])
-        game_ids = []; game_titles = []
-        for item in data:
-            game_ids.append(item[0])
-            game_titles.append(item[1])
-
-        return game_ids, game_titles
 
     @client.tree.command(name="hey", description="Say Hi to Ms. Pricewhisper", guild=guild)
     async def hey(interaction: discord.Interaction):
@@ -90,13 +83,16 @@ def init_commands(client, guild, query_manager : QueryManager):
     @client.tree.command(name="whisper", description="Ask Ms.Pricewhisper to tell you about the games on your watchlist meeting your criteria", guild=guild)
     async def whisper(interaction: discord.Interaction):
         async def action():
-            await interaction.response.send_message("Coming soon!")
+            usr_id = interaction.user.id
+            game_ids, game_titles = sql_manager.resolve_wishlist_items_identifiers(usr_id=usr_id)
+            await query_manager.price_lookup(game_titles, game_ids)
+            await interaction.response.send_message(await sql_manager.filtering_by_rule(user_id=usr_id))
         await _safe_execute(interaction, action)
 
     @client.tree.command(name="whisperall", description="Ask Ms.Pricewhisper to give you a full report on your watchlist", guild=guild)
     async def whisperall(interaction: discord.Interaction):
         async def action():
-            game_ids, game_titles = await _resolve_wishlist_content(interaction)
+            game_ids, game_titles = sql_manager.resolve_wishlist_items_identifiers(usr_id=interaction.user.id)
             await interaction.response.send_message(await query_manager.price_lookup(game_titles, game_ids))
         await _safe_execute(interaction, action)
 

@@ -2,7 +2,7 @@
 @file: queryManager.py
 @brief: Query Manager Class
 @author:DBZash
-@date 2026-10-14
+@date 2026-10-23
 @version 0.3.0
 """
 
@@ -27,7 +27,7 @@ class QueryManager:
             await self.sessionManager.create()
             self._isAlive = True
 
-    def use(self):
+    def _use(self):
         return self.sessionManager.get_session()
 
     async def stop(self):
@@ -49,7 +49,7 @@ class QueryManager:
             lines.append(await self.itad_price_lookup(remaining_ids, remaining_titles))
         if lines:
             return "\n".join(lines)
-        return "I couldn't find any price, maybe your wishlist is empty or the game(s) you're looking for aren't available"
+        return "I couldn't find any price, maybe your wishlist is empty or the games you're looking for aren't available"
 
     async def itad_price_lookup(self, game_ids : list, game_titles : list) -> str:
 
@@ -57,7 +57,7 @@ class QueryManager:
         if not self.alive(): await self.start()
 
         try:
-            async with self.use().post(
+            async with self._use().post(
                 self.itad.get_price_lookup_url(),
                 headers=self.itad.headers,
                 params=self.itad.get_price_lookup_params(),
@@ -70,7 +70,7 @@ class QueryManager:
                 if not data:
                     return f"Sorry... I couldn't find any price for {game_titles[0]}"
 
-            title_by_id = dict(zip(game_ids, game_titles)) #Convert to a dictionnary to compensate for API jumbling
+            title_by_id = dict(zip(game_ids, game_titles)) #Convert to a dictionary to compensate for API jumbling
             lines = []
             for entry in data:
                 sql.refresh_game(str(title_by_id.get(entry['id'])),entry, 'itad')
@@ -92,7 +92,7 @@ class QueryManager:
 
     async def fetch_game_data(self, game_title: str) -> list:
         if not self.alive(): await self.start()
-        async with self.use().get(
+        async with self._use().get(
                 self.itad.get_game_lookup_url(),
                 headers=self.itad.headers,
                 params=self.itad.get_game_lookup_params(game_title)
@@ -112,5 +112,3 @@ class QueryManager:
             return f"Psst... Something went wrong : {err}"
         except IndexError:
             return "Psst... It seems I can't find the price of what you're looking for"
-        finally:
-            await self.stop()
